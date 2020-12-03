@@ -6,9 +6,11 @@ import {
   scaleBand,
   axisLeft,
   axisBottom,
+  format,
 } from "d3";
 
 const svg = select("svg");
+
 const width = +svg.attr("width");
 const height = +svg.attr("height");
 
@@ -17,7 +19,7 @@ const render = (data) => {
   // value accesors
   const xValue = (d) => d.population;
   const yValue = (d) => d.country;
-  const margin = { top: 20, bottom: 40, left: 80, right: 40 };
+  const margin = { top: 50, bottom: 100, left: 140, right: 40 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
@@ -25,21 +27,36 @@ const render = (data) => {
     .domain([0, max(data, xValue)])
     .range([0, innerWidth]);
 
-  const xAxis = axisBottom(xScale);
-
   const yScale = scaleBand()
     .domain(data.map(yValue))
     .range([0, innerHeight])
     .padding(0.1);
 
+  const xAxisTickFormat = (number) => format(".3s")(number).replace("G", "B");
+  const xAxis = axisBottom(xScale)
+    .tickFormat(xAxisTickFormat)
+    .tickSize(-innerHeight);
   const yAxis = axisLeft(yScale);
 
   const g = svg
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
-  g.append("g").call(yAxis);
-  g.append("g").call(xAxis).attr("transform", `translate(0,${innerHeight})`);
+  g.append("g").call(yAxis).selectAll(".domain, .tick line").remove();
+
+  const xAxisG = g
+    .append("g")
+    .call(xAxis)
+    .attr("transform", `translate(0,${innerHeight})`);
+
+  xAxisG.select(".domain").remove();
+
+  xAxisG
+    .append("text")
+    .text("population")
+    .attr("fill", "black")
+    .attr("x", innerWidth / 2)
+    .attr("y", 60);
 
   g.selectAll("rect")
     .data(data)
@@ -47,8 +64,12 @@ const render = (data) => {
     .append("rect")
     .attr("y", (d) => yScale(yValue(d)))
     .attr("width", (d) => xScale(xValue(d)))
-    .attr("height", yScale.bandwidth())
-    .attr("fill", "#9620d2");
+    .attr("height", yScale.bandwidth());
+
+  g.append("text")
+    .attr("y", -10)
+    .text("Top 10 most populous countries in the world.")
+    .attr("class", "headline");
 };
 
 // returns a promise
