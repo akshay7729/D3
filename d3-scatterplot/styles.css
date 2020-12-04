@@ -14,3 +14,14 @@ text {
 .headline {
   font-size: 30px;
 }
+.title {
+  font-size: 30px;
+}
+.x-axis-label {
+  font-size: 25px;
+}
+
+circle {
+  fill: steelblue;
+  opacity: 0.5;
+}

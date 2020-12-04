@@ -2,80 +2,112 @@ import {
   select,
   csv,
   scaleLinear,
-  max,
-  scaleBand,
+  extent,
   axisLeft,
   axisBottom,
   format,
 } from "d3";
 
 const svg = select("svg");
-
 const width = +svg.attr("width");
 const height = +svg.attr("height");
 
-//create a rectangle
+// render viz
 const render = (data) => {
-  // value accesors
-  const xValue = (d) => d.population;
-  const yValue = (d) => d.country;
-  const margin = { top: 50, bottom: 100, left: 140, right: 40 };
+  const margin = { top: 50, right: 40, left: 150, bottom: 100 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
+  const xValue = (d) => d.horsepower;
+  const xAxisLabel = "Weight";
 
+  const yValue = (d) => d.weight;
+  const yAxisLabel = "Horsepower";
+  const circleRadius = 10;
+
+  const title = "Cars: Horsepower vs Weight";
+
+  //scales
   const xScale = scaleLinear()
-    .domain([0, max(data, xValue)])
-    .range([0, innerWidth]);
+    .domain(extent(data, xValue)) //extent gives from min to max
+    .range([0, innerWidth])
+    .nice();
 
-  const yScale = scaleBand()
-    .domain(data.map(yValue))
+  const yScale = scaleLinear()
+    .domain(extent(data, yValue))
     .range([0, innerHeight])
-    .padding(0.1);
+    .nice();
 
-  const xAxisTickFormat = (number) => format(".3s")(number).replace("G", "B");
-  const xAxis = axisBottom(xScale)
-    .tickFormat(xAxisTickFormat)
-    .tickSize(-innerHeight);
-  const yAxis = axisLeft(yScale);
+  // axis
+  const xAxis = axisBottom(xScale).tickSize(-innerHeight).tickPadding(20);
 
+  const yAxis = axisLeft(yScale).tickSize(-innerWidth).tickPadding(20);
+
+  // grouping
   const g = svg
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
-  g.append("g").call(yAxis).selectAll(".domain, .tick line").remove();
-
-  const xAxisG = g
+  //call x axis
+  const xAxisGroup = g
     .append("g")
     .call(xAxis)
     .attr("transform", `translate(0,${innerHeight})`);
 
-  xAxisG.select(".domain").remove();
+  xAxisGroup.select(".domain").remove();
 
-  xAxisG
+  //x axis label
+  xAxisGroup
     .append("text")
-    .text("population")
+    .text(xAxisLabel)
     .attr("fill", "black")
     .attr("x", innerWidth / 2)
-    .attr("y", 60);
+    .attr("y", 60)
+    .attr("class", "x-axis-label");
 
-  g.selectAll("rect")
+  //call y axis
+  const yAxisGroup = g.append("g").call(yAxis);
+
+  yAxisGroup.selectAll(".domain").remove();
+
+  //y axis label
+  yAxisGroup
+    .append("text")
+    .text(yAxisLabel)
+    .attr("fill", "black")
+    .attr("x", -innerHeight / 2)
+    .attr("y", -90)
+    .attr("class", "y-axis-label")
+    .attr("transform", `rotate(-90)`)
+    .attr("text-anchor", "middle");
+
+  // title
+  g.append("text")
+    .text(title)
+    .attr("x", "15%")
+    .attr("y", -15)
+    .attr("class", "title");
+
+  // bars
+  g.selectAll("circle")
     .data(data)
     .enter()
-    .append("rect")
-    .attr("y", (d) => yScale(yValue(d)))
-    .attr("width", (d) => xScale(xValue(d)))
-    .attr("height", yScale.bandwidth());
-
-  g.append("text")
-    .attr("y", -10)
-    .text("Top 10 most populous countries in the world.")
-    .attr("class", "headline");
+    .append("circle")
+    .attr("cy", (d) => yScale(yValue(d)))
+    .attr("cx", (d) => xScale(xValue(d)))
+    .attr("r", circleRadius);
 };
 
-// returns a promise
-csv("data.csv").then((data) => {
-  data.forEach((d) => {
-    d.population = +d.population * 1000;
+//load csv data
+csv("https://vizhub.com/curran/datasets/auto-mpg.csv").then((data) => {
+  console.log("auto", data);
+  // convert string population to number population
+  data.forEach((data) => {
+    data.mpg = +data.mpg;
+    data.cylinders = +data.cylinders;
+    data.displacements = +data.displacements;
+    data.horsepower = +data.horsepower;
+    data.acceleration = +data.acceleration;
+    data.year = +data.year;
   });
   render(data);
 });
