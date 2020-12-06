@@ -1,4 +1,14 @@
-import { select, csv, scaleLinear, extent, axisLeft, axisBottom } from "d3";
+import {
+  select,
+  csv,
+  line,
+  scaleLinear,
+  curveBasis,
+  extent,
+  scaleTime,
+  axisLeft,
+  axisBottom,
+} from "d3";
 
 const svg = select("svg");
 const width = +svg.attr("width");
@@ -6,27 +16,27 @@ const height = +svg.attr("height");
 
 // render viz
 const render = (data) => {
-  const margin = { top: 50, right: 40, left: 150, bottom: 100 };
+  const margin = { top: 50, right: 40, left: 110, bottom: 100 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
-  const xValue = (d) => d.horsepower;
-  const xAxisLabel = "Weight";
+  const xValue = (d) => d.timestamp;
+  const xAxisLabel = "Time";
 
-  const yValue = (d) => d.weight;
-  const yAxisLabel = "Horsepower";
-  const circleRadius = 10;
+  const yValue = (d) => d.temperature;
+  const yAxisLabel = "Temperature";
+  const circleRadius = 6;
 
-  const title = "Cars: Horsepower vs Weight";
+  const title = "A week in San Francisco";
 
   //scales
-  const xScale = scaleLinear()
+  const xScale = scaleTime()
     .domain(extent(data, xValue)) //extent gives from min to max
     .range([0, innerWidth])
     .nice();
 
   const yScale = scaleLinear()
     .domain(extent(data, yValue))
-    .range([0, innerHeight])
+    .range([innerHeight, 0])
     .nice();
 
   // axis
@@ -67,7 +77,7 @@ const render = (data) => {
     .text(yAxisLabel)
     .attr("fill", "black")
     .attr("x", -innerHeight / 2)
-    .attr("y", -90)
+    .attr("y", -60)
     .attr("class", "y-axis-label")
     .attr("transform", `rotate(-90)`)
     .attr("text-anchor", "middle");
@@ -79,27 +89,22 @@ const render = (data) => {
     .attr("y", -15)
     .attr("class", "title");
 
-  // bars
-  g.selectAll("circle")
-    .data(data)
-    .enter()
-    .append("circle")
-    .attr("cy", (d) => yScale(yValue(d)))
-    .attr("cx", (d) => xScale(xValue(d)))
-    .attr("r", circleRadius);
+  //path
+  const lineGenerator = line()
+    .x((d) => xScale(xValue(d)))
+    .y((d) => yScale(yValue(d)))
+    .curve(curveBasis);
+
+  g.append("path").attr("d", lineGenerator(data)).attr("class", "line-path");
 };
 
 //load csv data
-csv("https://vizhub.com/curran/datasets/auto-mpg.csv").then((data) => {
-  console.log("auto", data);
-  // convert string population to number population
-  data.forEach((data) => {
-    data.mpg = +data.mpg;
-    data.cylinders = +data.cylinders;
-    data.displacements = +data.displacements;
-    data.horsepower = +data.horsepower;
-    data.acceleration = +data.acceleration;
-    data.year = +data.year;
-  });
-  render(data);
-});
+csv("https://vizhub.com/curran/datasets/temperature-in-san-francisco.csv").then(
+  (data) => {
+    data.forEach((d) => {
+      d.temperature = +d.temperature;
+      d.timestamp = new Date(d.timestamp);
+    });
+    render(data);
+  }
+);
